@@ -92,7 +92,7 @@ pub async fn launch(
     let mut vars: HashMap<String, String> = HashMap::new();
     vars.insert("natives_directory".into(), path_str(&prepared.natives_dir));
     vars.insert("launcher_name".into(), brand::brand().app_name);
-    vars.insert("launcher_version".into(), "0.1.0".into());
+    vars.insert("launcher_version".into(), env!("CARGO_PKG_VERSION").to_string());
     vars.insert("classpath".into(), classpath_str);
     vars.insert("classpath_separator".into(), classpath_separator().into());
     vars.insert("library_directory".into(), path_str(&prepared.libraries_dir));

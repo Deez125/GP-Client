@@ -6,6 +6,7 @@ mod launch;
 mod mods;
 mod mojang;
 mod skin;
+mod updates;
 
 use tauri::Manager;
 
@@ -56,7 +57,9 @@ pub fn run() {
             skin::get_skin_face,
             skin::get_skin,
             skin::list_skins,
-            skin::rename_skin
+            skin::rename_skin,
+            updates::check_for_update,
+            updates::install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

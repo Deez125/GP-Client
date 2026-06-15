@@ -5,6 +5,7 @@ import { TopNav, type Tab } from "./components/TopNav";
 import { PlayView } from "./components/PlayView";
 import { InstallationsView } from "./components/InstallationsView";
 import { SkinSidebar } from "./components/SkinSidebar";
+import { UpdateIndicator } from "./components/UpdateIndicator";
 import { SERVERS } from "./config/servers";
 import "./App.css";
 
@@ -30,6 +31,8 @@ function App() {
       </div>
 
       <SkinSidebar account={account} />
+
+      <UpdateIndicator />
     </div>
   );
 }

@@ -318,6 +318,47 @@ button {
   background: var(--accent);
 }
 
+/* Update-available popup (bottom-right, foreground) */
+.update-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 200;
+  width: 240px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.update-toast-title {
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.update-toast-text {
+  margin-top: 4px;
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.update-toast-btn {
+  margin-top: 10px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 7px;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.update-toast-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .view {
   flex: 1;
   overflow: auto;
