@@ -1,0 +1,13 @@
+# Reference material — design sources, specs, originals (not part of the app)
+reference/
+
+# Build artifacts & dependencies
+# (also covered by launcher/.gitignore and launcher/src-tauri/.gitignore,
+#  listed here in case the repo root is this folder)
+launcher/node_modules/
+launcher/dist/
+launcher/src-tauri/target/
+launcher/src-tauri/gen/schemas/
+
+# Logs
+*.log

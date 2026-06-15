@@ -1,0 +1,11 @@
+{
+  "appName": "GP Client",
+  "shortName": "GP",
+  "windowTitle": "GP Client",
+  "tagline": "Minecraft, launched your way.",
+  "bundleIdentifier": "gg.gpclient.launcher",
+  "installationsFolderName": "GP Client installations",
+  "sharedFolderName": "GP Client",
+  "managedModsLabel": "GP Mods",
+  "userModsLabel": "Your Mods"
+}

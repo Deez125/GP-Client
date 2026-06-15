@@ -1,0 +1,64 @@
+[package]
+name = "launcher"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "launcher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# --- Authentication (step 2) ---
+# HTTP client for the OAuth / Xbox / Minecraft token exchanges.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "cookies"] }
+# Async runtime bits used by the auth commands.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process"] }
+# Tiny blocking HTTP server to catch the OAuth loopback redirect (?code=...).
+tiny_http = "0.12"
+# URL building/parsing for the authorize URL and redirect.
+url = "2"
+# PKCE: base64url + SHA-256 of a random verifier.
+base64 = "0.22"
+sha2 = "0.10"
+rand = "0.8"
+# Secure on-disk token storage (Windows Credential Manager on Windows).
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+# Ergonomic error enums.
+thiserror = "2"
+# Open the system browser for the OAuth login.
+open = "5"
+
+# --- Installations (step 3) ---
+# Resolve OS-standard data directories for the install root.
+dirs = "6"
+
+# --- Launch pipeline (step 6) ---
+# Mojang content hashes are SHA-1.
+sha1 = "0.10"
+# Crop/scale the player's skin PNG into a face icon (PNG only — lean).
+image = { version = "0.25", default-features = false, features = ["png"] }
+# Concurrency helpers for parallel downloads (buffer_unordered).
+futures = "0.3"
+# Unzip native libraries / extract archives.
+zip = "2"
+
+# Create Windows directory junctions (no admin / dev-mode needed) for the
+# shared resourcepacks/shaderpacks/saves shortcuts (step 4).
+[target.'cfg(windows)'.dependencies]
+junction = "1"
+
