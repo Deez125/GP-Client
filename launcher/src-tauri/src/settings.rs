@@ -26,7 +26,10 @@ pub struct Settings {
 
     // --- Updates ---
     pub check_updates_on_startup: bool,
-    pub prerelease_updates: bool,
+    /// Whether to receive pre-release updates. `None` means the user hasn't
+    /// chosen, so the updater falls back to a version-based default (on for
+    /// pre-release builds, off for full releases). A user choice persists.
+    pub prerelease_updates: Option<bool>,
 
     // --- Game ---
     /// Default heap (GB) suggested for new installations.
@@ -43,8 +46,9 @@ impl Default for Settings {
             reopen_on_close: false,
             close_to_tray: false,
             check_updates_on_startup: true,
-            // Everyone is currently on a pre-release build; flip to false later.
-            prerelease_updates: true,
+            // Unset → the updater picks a default from the running build's
+            // channel (pre-release build = on, full release = off).
+            prerelease_updates: None,
             default_memory_gb: 6,
             animated_background: true,
         }

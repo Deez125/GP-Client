@@ -56,6 +56,9 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
   const [version, setVersion] = useState("");
   // "Pre-release" | "Release" | null (unknown / no matching GitHub release).
   const [channel, setChannel] = useState<string | null>(null);
+  // Whether the running build is itself a pre-release (the default for the
+  // pre-release toggle when the user hasn't chosen).
+  const [versionIsPrerelease, setVersionIsPrerelease] = useState(false);
 
   useEffect(() => {
     getCurrentVersion()
@@ -66,10 +69,15 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
       .then((n) => {
         if (n.prerelease != null) {
           setChannel(n.prerelease ? "Pre-release" : "Release");
+          setVersionIsPrerelease(n.prerelease);
         }
       })
       .catch(() => {});
   }, []);
+
+  // Effective pre-release toggle: the user's choice if set, else default by
+  // whether this build is a pre-release.
+  const prereleaseOn = settings?.prerelease_updates ?? versionIsPrerelease;
 
   // These two are temporarily disabled; force them off in storage if a prior
   // version (or default) left them on.
@@ -115,15 +123,15 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
 
         <section className="settings-section">
           <h3>Updates</h3>
-          <Row title="Check for updates on startup" desc="Look for a newer version each time the launcher opens.">
+          <Row title="Check for updates on startup" desc="Look for a newer version each time the launcher opens. (Recommended, as the launcher is updated constantly)">
             <Toggle
               on={settings?.check_updates_on_startup ?? true}
               onChange={(v) => update({ check_updates_on_startup: v })}
             />
           </Row>
-          <Row title="Receive pre-release updates" desc="Get early test builds. May contain bugs.">
+          <Row title="Receive pre-release updates" desc="Also get early test builds, not just full releases. May contain bugs.">
             <Toggle
-              on={settings?.prerelease_updates ?? false}
+              on={prereleaseOn}
               onChange={(v) => update({ prerelease_updates: v })}
             />
           </Row>

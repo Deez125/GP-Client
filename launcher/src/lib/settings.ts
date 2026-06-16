@@ -9,7 +9,8 @@ export interface Settings {
   close_to_tray: boolean;
   // Updates
   check_updates_on_startup: boolean;
-  prerelease_updates: boolean;
+  // null = unset (use a version-based default); true/false = explicit choice.
+  prerelease_updates: boolean | null;
   // Game
   default_memory_gb: number;
   // Appearance

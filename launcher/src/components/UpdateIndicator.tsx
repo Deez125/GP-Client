@@ -45,7 +45,7 @@ export function UpdateIndicator() {
     <div className="update-toast">
       <div className="update-toast-title">Update available</div>
       <div className="update-toast-text">
-        {error ?? "A new version of GP Client is ready to install."}
+        {error ?? `Version ${info.latest} is ready to install.`}
       </div>
       <button
         className="update-toast-btn"

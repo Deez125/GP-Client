@@ -65,8 +65,17 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
         .await
         .map_err(|e| format!("parse releases: {e}"))?;
 
-    // Honor the user's channel: stable-only by default, prereleases opt-in.
-    let allow_prerelease = crate::settings::load().prerelease_updates;
+    // Channel: a full release always notifies; pre-releases only when opted in.
+    // If the user hasn't chosen, default by the running build's own channel
+    // (on for a pre-release build, off for a full release).
+    let current_is_prerelease = releases
+        .iter()
+        .find(|r| version_key(&r.tag_name) == version_key(&current))
+        .map(|r| r.prerelease)
+        .unwrap_or(false);
+    let allow_prerelease = crate::settings::load()
+        .prerelease_updates
+        .unwrap_or(current_is_prerelease);
 
     // Pick the newest eligible non-draft release.
     let mut best: Option<(&Release, Vec<u32>)> = None;
