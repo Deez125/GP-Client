@@ -1,6 +1,6 @@
 # GP Client
 
-A custom, standalone Minecraft launcher for our server and friend group. Sign
+A custom, standalone Minecraft launcher for GP Client supported servers. Sign
 in, install the modpack, and play — no official launcher needed.
 
 ---
