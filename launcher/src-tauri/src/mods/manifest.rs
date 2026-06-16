@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 /// The only hardcoded URL in the whole system (per the spec).
 pub const MANIFEST_URL: &str =
-    "https://raw.githubusercontent.com/Deez125/mcmodupdater/main/manifest.json";
+    "https://raw.githubusercontent.com/Deez125/GP-Client/main/manifest.json";
 
 #[derive(Debug, Deserialize)]
 pub struct Manifest {

@@ -9,6 +9,7 @@ import { listModVersions } from "../lib/versions";
 import { listInstallations } from "../lib/installations";
 import { ModsDialog } from "./ModsDialog";
 import { Dropdown } from "./Dropdown";
+import { useSettings } from "../hooks/useSettings";
 
 // The Play tab: hero (selected server's image) + bottom bar (version dropdown +
 // Mods + Play).
@@ -29,6 +30,8 @@ export function PlayView({
   // True when the Mods popup was opened as the first step of an install.
   const [installMode, setInstallMode] = useState(false);
   const unlisten = useRef<(() => void) | null>(null);
+  const { settings } = useSettings();
+  const animatedBg = settings?.animated_background ?? true;
 
   // Hero crossfade: stack image layers; the newest fades in over the old, then
   // older layers are removed.
@@ -94,7 +97,7 @@ export function PlayView({
 
   return (
     <div className="play-view">
-      <div className="hero">
+      <div className={`hero${animatedBg ? " animated" : ""}`}>
         {heroLayers.map((l) => (
           <div
             key={l.key}

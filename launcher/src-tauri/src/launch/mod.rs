@@ -15,7 +15,7 @@ mod java;
 
 use std::collections::HashMap;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tokio::process::Command;
 
 use crate::brand;
@@ -195,6 +195,22 @@ pub async fn launch(
         .spawn()
         .map_err(|e| format!("failed to start Java ({}): {e}", java.display()))?;
 
+    // Apply the user's launch-behavior setting now that the game is up.
+    let settings = crate::settings::load();
+    match settings.launch_behavior.as_str() {
+        "minimize" => {
+            if let Some(w) = main_window(app) {
+                let _ = w.minimize();
+            }
+        }
+        "close" => {
+            // Quit the launcher; the spawned game keeps running independently.
+            app.exit(0);
+            return Ok(());
+        }
+        _ => {} // "keep": leave the window as-is.
+    }
+
     // Keep the caller (and thus the Play button) "busy" for the whole game
     // session — re-enable only when Minecraft exits.
     mojang::emit_progress(app, "running", 1, 1, "Minecraft is running");
@@ -202,6 +218,19 @@ pub async fn launch(
         .wait()
         .await
         .map_err(|e| format!("error waiting for Minecraft: {e}"))?;
+
+    // Bring the launcher back when the game exits, if the user wants it.
+    if settings.reopen_on_close {
+        if let Some(w) = main_window(app) {
+            let _ = w.unminimize();
+            let _ = w.show();
+            // Windows blocks a background app from grabbing the foreground via
+            // set_focus alone; briefly forcing always-on-top pulls it to front.
+            let _ = w.set_always_on_top(true);
+            let _ = w.set_focus();
+            let _ = w.set_always_on_top(false);
+        }
+    }
 
     if !status.success() {
         // Non-zero usually means a crash, not a normal quit — point at the log.
@@ -215,6 +244,13 @@ pub async fn launch(
 
 fn path_str(p: &std::path::Path) -> String {
     p.to_string_lossy().into_owned()
+}
+
+/// The launcher's window. Prefers the conventional "main" label but falls back
+/// to whatever window exists, so window control works regardless of label.
+fn main_window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
+    app.get_webview_window("main")
+        .or_else(|| app.webview_windows().into_values().next())
 }
 
 // --- Tauri command ----------------------------------------------------------

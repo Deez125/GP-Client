@@ -11,3 +11,6 @@ launcher/src-tauri/gen/schemas/
 
 # Logs
 *.log
+
+# Local-only draft release notes (pasted into GitHub releases, never committed)
+RELEASE_NOTES*.md

@@ -12,6 +12,8 @@ struct Release {
     #[serde(default)]
     draft: bool,
     #[serde(default)]
+    prerelease: bool,
+    #[serde(default)]
     assets: Vec<Asset>,
 }
 
@@ -63,10 +65,16 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
         .await
         .map_err(|e| format!("parse releases: {e}"))?;
 
-    // Pick the newest non-draft release (prereleases included).
+    // Honor the user's channel: stable-only by default, prereleases opt-in.
+    let allow_prerelease = crate::settings::load().prerelease_updates;
+
+    // Pick the newest eligible non-draft release.
     let mut best: Option<(&Release, Vec<u32>)> = None;
     for r in &releases {
         if r.draft {
+            continue;
+        }
+        if r.prerelease && !allow_prerelease {
             continue;
         }
         let key = version_key(&r.tag_name);
@@ -112,6 +120,9 @@ pub struct ReleaseNotes {
     pub url: Option<String>,
     /// Publish timestamp (ISO 8601), if the release is published.
     pub date: Option<String>,
+    /// Whether the matching release is flagged as a pre-release on GitHub.
+    /// None when no matching release was found.
+    pub prerelease: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -122,6 +133,8 @@ struct ReleaseDetail {
     html_url: Option<String>,
     #[serde(default)]
     published_at: Option<String>,
+    #[serde(default)]
+    prerelease: bool,
 }
 
 /// Fetch the GitHub release notes for the running app version. The release tag
@@ -155,6 +168,7 @@ pub async fn release_notes() -> Result<ReleaseNotes, String> {
             notes,
             url: detail.html_url,
             date: detail.published_at,
+            prerelease: Some(detail.prerelease),
         });
     }
 
@@ -164,6 +178,7 @@ pub async fn release_notes() -> Result<ReleaseNotes, String> {
         notes: None,
         url: None,
         date: None,
+        prerelease: None,
     })
 }
 

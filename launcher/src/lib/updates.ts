@@ -26,6 +26,7 @@ export interface ReleaseNotes {
   notes: string | null;
   url: string | null;
   date: string | null;
+  prerelease: boolean | null;
 }
 
 /** Fetch the GitHub release notes (Markdown) for this app's version. */

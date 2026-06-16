@@ -516,6 +516,34 @@ button {
 .switch.on .switch-knob {
   transform: translateX(20px);
 }
+.switch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.setting-version {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.channel-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+.channel-badge.pre {
+  background: rgba(214, 158, 46, 0.16);
+  color: #e3b341;
+}
 
 /* ============================================================
    Play view
@@ -548,6 +576,20 @@ button {
 @keyframes heroFade {
   from {
     opacity: 0;
+  }
+}
+
+/* Slow ken-burns drift, toggled by the "Animated background" setting. */
+.hero.animated .hero-layer {
+  animation: heroFade 0.4s ease, heroDrift 38s ease-in-out infinite alternate;
+}
+
+@keyframes heroDrift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
   }
 }
 

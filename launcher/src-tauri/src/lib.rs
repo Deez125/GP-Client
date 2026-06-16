@@ -5,6 +5,7 @@ mod installations;
 mod launch;
 mod mods;
 mod mojang;
+mod settings;
 mod skin;
 mod updates;
 
@@ -60,7 +61,9 @@ pub fn run() {
             skin::rename_skin,
             updates::check_for_update,
             updates::install_update,
-            updates::release_notes
+            updates::release_notes,
+            settings::get_settings,
+            settings::set_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

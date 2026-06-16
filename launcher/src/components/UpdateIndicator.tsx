@@ -4,6 +4,7 @@ import {
   installUpdate,
   type UpdateInfo,
 } from "../lib/updates";
+import { getSettings } from "../lib/settings";
 
 // Update-available popup, bottom-right. Checks GitHub on startup; if there's a
 // newer release, "Update now" downloads + runs its installer (the app exits so
@@ -14,8 +15,14 @@ export function UpdateIndicator() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkForUpdate()
-      .then(setInfo)
+    // Respect the "check on startup" setting (prerelease channel is honored by
+    // the backend check itself).
+    getSettings()
+      .then((s) => {
+        if (s.check_updates_on_startup) {
+          return checkForUpdate().then(setInfo);
+        }
+      })
       .catch(() => {});
   }, []);
 

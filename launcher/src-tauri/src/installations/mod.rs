@@ -125,7 +125,11 @@ pub fn ensure_version(version: &str) -> std::io::Result<InstallationInfo> {
     // entry in the Installations tab.
     let dir = layout.version_dir(version);
     if !dir.join(meta::META_FILENAME).exists() {
-        let _ = meta::write(&dir, &meta::InstanceMeta::default_for(version));
+        let mut m = meta::InstanceMeta::default_for(version);
+        // Seed new installations with the user's default memory setting.
+        let gb = crate::settings::load().default_memory_gb.max(1);
+        m.ram_mb = (gb * 1024).clamp(512, 65536);
+        let _ = meta::write(&dir, &m);
     }
     Ok(InstallationInfo::from_layout(&layout, version))
 }
