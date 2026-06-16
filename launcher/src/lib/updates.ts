@@ -20,3 +20,13 @@ export const checkForUpdate = () => invoke<UpdateInfo>("check_for_update");
 /** Download + run the new installer (the app exits so it can update itself). */
 export const installUpdate = (url: string) =>
   invoke<void>("install_update", { url });
+
+export interface ReleaseNotes {
+  version: string;
+  notes: string | null;
+  url: string | null;
+  date: string | null;
+}
+
+/** Fetch the GitHub release notes (Markdown) for this app's version. */
+export const getReleaseNotes = () => invoke<ReleaseNotes>("release_notes");

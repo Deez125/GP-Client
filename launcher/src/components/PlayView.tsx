@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { LuPackagePlus } from "react-icons/lu";
 import {
   launchVersion,
   onLaunchProgress,
@@ -7,6 +8,7 @@ import {
 import { listModVersions } from "../lib/versions";
 import { listInstallations } from "../lib/installations";
 import { ModsDialog } from "./ModsDialog";
+import { Dropdown } from "./Dropdown";
 
 // The Play tab: hero (selected server's image) + bottom bar (version dropdown +
 // Mods + Play).
@@ -129,19 +131,17 @@ export function PlayView({
 
         <div className="play-bar">
           <div className="version-pick">
-            <select
+            <Dropdown
               value={version}
-              onChange={(e) => setVersion(e.currentTarget.value)}
+              onChange={setVersion}
               disabled={busy || versions.length === 0}
-            >
-              {versions.length === 0 && <option value="">Loading…</option>}
-              {versions.map((v, i) => (
-                <option key={v} value={v}>
-                  {v}
-                  {i === 0 ? " (latest)" : ""}
-                </option>
-              ))}
-            </select>
+              openUp
+              placeholder="Loading…"
+              options={versions.map((v, i) => ({
+                value: v,
+                label: i === 0 ? `${v} (latest)` : v,
+              }))}
+            />
           </div>
 
           <button
@@ -168,6 +168,7 @@ export function PlayView({
               }}
               disabled={busy || !version}
             >
+              <LuPackagePlus />
               Mods
             </button>
           </div>

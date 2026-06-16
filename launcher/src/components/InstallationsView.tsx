@@ -12,6 +12,7 @@ import {
 import { launchVersion } from "../lib/launch";
 import { listModVersions } from "../lib/versions";
 import { EditInstallationDialog } from "./EditInstallationDialog";
+import { Dropdown } from "./Dropdown";
 
 // Folder / pencil / trash icons (small inline SVGs for crisp rendering).
 const FolderIcon = () => (
@@ -119,18 +120,13 @@ export function InstallationsView() {
       <p className="path">{root}</p>
 
       <div className="install-controls">
-        <select
+        <Dropdown
           value={version}
-          onChange={(e) => setVersion(e.currentTarget.value)}
+          onChange={setVersion}
           disabled={busy || versions.length === 0}
-        >
-          {versions.length === 0 && <option value="">Loading…</option>}
-          {versions.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
+          placeholder="Loading…"
+          options={versions.map((v) => ({ value: v, label: v }))}
+        />
         <button className="btn primary" onClick={onCreate} disabled={busy || !version}>
           {busy ? "Creating…" : "New installation"}
         </button>

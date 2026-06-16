@@ -59,7 +59,8 @@ pub fn run() {
             skin::list_skins,
             skin::rename_skin,
             updates::check_for_update,
-            updates::install_update
+            updates::install_update,
+            updates::release_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -101,6 +101,72 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
     })
 }
 
+/// One release's notes, for the What's New popup.
+#[derive(serde::Serialize)]
+pub struct ReleaseNotes {
+    /// The app version these notes describe (e.g. "0.1.3").
+    pub version: String,
+    /// The release body in Markdown, or None if no matching release was found.
+    pub notes: Option<String>,
+    /// Link to the release page on GitHub, if found.
+    pub url: Option<String>,
+    /// Publish timestamp (ISO 8601), if the release is published.
+    pub date: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ReleaseDetail {
+    #[serde(default)]
+    body: Option<String>,
+    #[serde(default)]
+    html_url: Option<String>,
+    #[serde(default)]
+    published_at: Option<String>,
+}
+
+/// Fetch the GitHub release notes for the running app version. The release tag
+/// is the version, by convention with an optional leading "v" (e.g. "v0.1.3").
+#[tauri::command]
+pub async fn release_notes() -> Result<ReleaseNotes, String> {
+    let version = env!("CARGO_PKG_VERSION").to_string();
+
+    let client = reqwest::Client::builder()
+        .user_agent("GPClient/0.1 (+launcher)")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // Tags are typed as "v0.1.3" in practice, but accept the bare version too.
+    for tag in [format!("v{version}"), version.clone()] {
+        let resp = client
+            .get(format!("{RELEASES_API}/tags/{tag}"))
+            .send()
+            .await
+            .map_err(|e| format!("fetch release notes: {e}"))?;
+        if !resp.status().is_success() {
+            continue;
+        }
+        let detail: ReleaseDetail = resp
+            .json()
+            .await
+            .map_err(|e| format!("parse release notes: {e}"))?;
+        let notes = detail.body.map(|b| b.trim().to_string()).filter(|b| !b.is_empty());
+        return Ok(ReleaseNotes {
+            version,
+            notes,
+            url: detail.html_url,
+            date: detail.published_at,
+        });
+    }
+
+    // No matching release published yet.
+    Ok(ReleaseNotes {
+        version,
+        notes: None,
+        url: None,
+        date: None,
+    })
+}
+
 /// Download the new installer and launch it, then exit so it can replace the
 /// running app. (The NSIS installer reinstalls over the existing copy.)
 #[tauri::command]
