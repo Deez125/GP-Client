@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { SkinViewer, WalkingAnimation } from "skinview3d";
-import { getSkin } from "../lib/skin";
+import { getPlayerTextures } from "../lib/skin";
 
 // Body angle (radians) — character turned toward the viewer's right (~34°).
 // Shared everywhere so the sidebar, the big "current" render, and library tiles
@@ -10,6 +10,7 @@ export const SKIN_ANGLE = 0.6;
 export function SkinRender({
   uuid,
   src,
+  cape,
   model = "auto-detect",
   width,
   height,
@@ -19,6 +20,8 @@ export function SkinRender({
   uuid?: string;
   /** OR load a skin directly from a URL / bundled asset (Steve/Alex). */
   src?: string;
+  /** Optional cape texture (full PNG data URL) to drape on the model. */
+  cape?: string | null;
   model?: "auto-detect" | "default" | "slim";
   width: number;
   height: number;
@@ -33,7 +36,7 @@ export function SkinRender({
     let viewer: SkinViewer | null = null;
     let cancelled = false;
 
-    const setup = (skinSrc: string) => {
+    const setup = (skinSrc: string, capeSrc?: string | null) => {
       if (cancelled || !canvasRef.current) return;
       viewer = new SkinViewer({ canvas: canvasRef.current, width, height });
       viewer.zoom = 0.85;
@@ -53,24 +56,32 @@ export function SkinRender({
         if (cancelled || !viewer) return;
         viewer.playerObject.rotation.y = SKIN_ANGLE;
       });
+      if (capeSrc) {
+        viewer.loadCape(capeSrc).catch(() => {});
+      }
     };
 
     if (src) {
-      setup(src);
+      setup(src, cape);
     } else if (uuid) {
-      getSkin(uuid).then(setup).catch(() => {});
+      getPlayerTextures(uuid)
+        .then((t) => setup(t.skin, t.cape))
+        .catch(() => {});
     }
 
     return () => {
       cancelled = true;
       viewer?.dispose();
     };
-  }, [uuid, src, model, width, height, animated]);
+  }, [uuid, src, cape, model, width, height, animated]);
 
   return (
     <canvas
       ref={canvasRef}
       className={`skin-canvas${animated ? " draggable" : ""}`}
+      // Reserve the exact size up front so a remount (e.g. switching skins)
+      // can't briefly collapse the canvas and shift the layout.
+      style={{ width, height }}
     />
   );
 }

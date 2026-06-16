@@ -13,6 +13,8 @@ import {
 export interface Account {
   profile: MinecraftProfile | null;
   busy: boolean;
+  /** True until the startup silent sign-in resolves (avoids a signed-out flash). */
+  initializing: boolean;
   error: AuthError | null;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -21,6 +23,7 @@ export interface Account {
 export function useAccount(): Account {
   const [profile, setProfile] = useState<MinecraftProfile | null>(null);
   const [busy, setBusy] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
 
   useEffect(() => {
@@ -30,6 +33,8 @@ export function useAccount(): Account {
         if (p) setProfile(p);
       } catch {
         // Silent failure is fine — user just stays signed out.
+      } finally {
+        setInitializing(false);
       }
     })();
   }, []);
@@ -52,5 +57,5 @@ export function useAccount(): Account {
     setError(null);
   }, []);
 
-  return { profile, busy, error, signIn, signOut };
+  return { profile, busy, initializing, error, signIn, signOut };
 }

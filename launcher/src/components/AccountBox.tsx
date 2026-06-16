@@ -1,11 +1,24 @@
 import { useEffect, useState } from "react";
 import type { Account } from "../hooks/useAccount";
+import type { AuthError } from "../lib/auth";
 import { getSkinFace } from "../lib/skin";
+
+// Turn a raw auth error into short, friendly text for the account box.
+function authMessage(error: AuthError): string {
+  const m = (error.message || "").toLowerCase();
+  if (m.includes("429") || m.includes("too many requests"))
+    return "Too many tries. Wait a bit and sign in again.";
+  if (error.kind === "cancelled" || m.includes("cancel"))
+    return "Sign-in canceled.";
+  if (m.includes("network") || m.includes("sending request") || m.includes("timed out"))
+    return "Network problem. Try again.";
+  return "Sign-in failed. Try again.";
+}
 
 // Top account area: signed-in user (with their Minecraft skin face), or a
 // sign-in button.
 export function AccountBox({ account }: { account: Account }) {
-  const { profile, busy, error, signIn, signOut } = account;
+  const { profile, busy, initializing, error, signIn, signOut } = account;
   const [face, setFace] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,6 +51,19 @@ export function AccountBox({ account }: { account: Account }) {
     );
   }
 
+  // While restoring the session on startup/refresh, show a neutral loading
+  // state instead of flashing "Not signed in".
+  if (initializing) {
+    return (
+      <div className="account">
+        <div className="account-avatar placeholder" />
+        <div className="account-meta">
+          <strong className="muted">Loading…</strong>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="account">
       <div className="account-avatar placeholder" />
@@ -48,7 +74,7 @@ export function AccountBox({ account }: { account: Account }) {
         </button>
         {error && (
           <span className="account-error" title={error.message}>
-            {error.kind}
+            {authMessage(error)}
           </span>
         )}
       </div>

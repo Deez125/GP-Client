@@ -21,10 +21,9 @@ export function SkinSidebar({ account }: { account: Account }) {
           <div className="skin-placeholder" />
         )}
       </div>
-      <button className="btn" onClick={() => setOpen(true)} disabled>
+      <button className="btn" onClick={() => setOpen(true)} disabled={!profile}>
         Change skin
       </button>
-      <p className="muted small">[WIP]</p>
 
       {open && profile && (
         <ChangeSkinDialog

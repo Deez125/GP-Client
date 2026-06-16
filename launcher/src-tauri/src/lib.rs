@@ -5,6 +5,7 @@ mod installations;
 mod launch;
 mod mods;
 mod mojang;
+mod profile_import;
 mod settings;
 mod skin;
 mod updates;
@@ -23,6 +24,7 @@ fn get_brand() -> brand::Brand {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // The window title is defined as a placeholder in tauri.conf.json;
             // override it at startup from the single brand source of truth.
@@ -57,13 +59,23 @@ pub fn run() {
             mods::set_optional_mods,
             skin::get_skin_face,
             skin::get_skin,
+            skin::get_player_textures,
             skin::list_skins,
             skin::rename_skin,
+            skin::apply_skin,
+            skin::import_skin,
+            skin::update_skin,
+            skin::replace_skin_file,
+            skin::delete_skin,
+            skin::get_capes,
+            skin::set_cape,
             updates::check_for_update,
             updates::install_update,
             updates::release_notes,
             settings::get_settings,
-            settings::set_settings
+            settings::set_settings,
+            profile_import::list_source_profiles,
+            profile_import::import_profile_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

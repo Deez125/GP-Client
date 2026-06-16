@@ -19,7 +19,21 @@ mod xbox;
 pub use error::{AuthError, AuthResult};
 pub use minecraft::MinecraftProfile;
 
+use std::sync::Mutex;
+
 use serde::Serialize;
+
+/// In-memory session for this process run. A Ctrl+R reloads only the webview,
+/// not the Rust process, so caching the signed-in profile here lets the silent
+/// sign-in return instantly after a refresh instead of re-running the (network,
+/// rate-limitable) auth chain. Cleared on logout.
+static SESSION: Mutex<Option<MinecraftProfile>> = Mutex::new(None);
+
+fn cache_session(profile: &MinecraftProfile) {
+    if let Ok(mut guard) = SESSION.lock() {
+        *guard = Some(profile.clone());
+    }
+}
 
 /// Build the HTTP client. A real user-agent keeps the Mojang/Xbox APIs happy.
 fn http_client() -> AuthResult<reqwest::Client> {
@@ -51,23 +65,36 @@ async fn complete_chain(
 pub async fn login() -> AuthResult<MinecraftProfile> {
     let http = http_client()?;
     let ms = oauth::interactive_login(&http).await?;
-    complete_chain(&http, ms).await
+    let profile = complete_chain(&http, ms).await?;
+    cache_session(&profile);
+    Ok(profile)
 }
 
-/// Silent sign-in: use the stored refresh token; no browser. Returns
-/// `Ok(None)` if there's nothing stored (caller should then do interactive).
+/// Silent sign-in. Returns the in-memory session if one exists (survives a
+/// Ctrl+R), otherwise refreshes from the stored token. `Ok(None)` if there's
+/// nothing stored (caller should then do interactive).
 pub async fn login_silent() -> AuthResult<Option<MinecraftProfile>> {
+    // Fast path: reuse this run's session (no network → no rate limiting).
+    if let Ok(guard) = SESSION.lock() {
+        if let Some(profile) = guard.as_ref() {
+            return Ok(Some(profile.clone()));
+        }
+    }
     let Some(refresh_token) = cache::load_refresh_token()? else {
         return Ok(None);
     };
     let http = http_client()?;
     let ms = oauth::refresh(&http, &refresh_token).await?;
     let profile = complete_chain(&http, ms).await?;
+    cache_session(&profile);
     Ok(Some(profile))
 }
 
-/// Forget the stored refresh token.
+/// Forget the stored refresh token and the in-memory session.
 pub fn logout() -> AuthResult<()> {
+    if let Ok(mut guard) = SESSION.lock() {
+        *guard = None;
+    }
     cache::clear_refresh_token()
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LuPackagePlus } from "react-icons/lu";
+import { LuPackagePlus, LuImport } from "react-icons/lu";
 import {
   launchVersion,
   onLaunchProgress,
@@ -8,6 +8,7 @@ import {
 import { listModVersions } from "../lib/versions";
 import { listInstallations } from "../lib/installations";
 import { ModsDialog } from "./ModsDialog";
+import { ImportProfileDialog } from "./ImportProfileDialog";
 import { Dropdown } from "./Dropdown";
 import { useSettings } from "../hooks/useSettings";
 
@@ -27,6 +28,7 @@ export function PlayView({
   const [progress, setProgress] = useState<LaunchProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modsOpen, setModsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   // True when the Mods popup was opened as the first step of an install.
   const [installMode, setInstallMode] = useState(false);
   const unlisten = useRef<(() => void) | null>(null);
@@ -174,6 +176,14 @@ export function PlayView({
               <LuPackagePlus />
               Mods
             </button>
+            <button
+              className="btn mods-btn"
+              onClick={() => setImportOpen(true)}
+              disabled={busy}
+            >
+              <LuImport />
+              Import
+            </button>
           </div>
         </div>
       </div>
@@ -187,6 +197,13 @@ export function PlayView({
             setModsOpen(false);
             setInstallMode(false);
           }}
+        />
+      )}
+
+      {importOpen && (
+        <ImportProfileDialog
+          defaultVersion={version}
+          onClose={() => setImportOpen(false)}
         />
       )}
     </div>
