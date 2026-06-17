@@ -106,29 +106,86 @@ async fn read_varint(stream: &mut TcpStream) -> Result<u32, String> {
     Ok(result)
 }
 
-/// Split "host" or "host:port" into (host, port).
-fn split_addr(address: &str) -> (String, u16) {
+/// Split "host" or "host:port" into (host, explicit port if given).
+fn split_addr(address: &str) -> (String, Option<u16>) {
     match address.rsplit_once(':') {
-        Some((h, p)) => (h.to_string(), p.parse().unwrap_or(DEFAULT_PORT)),
-        None => (address.to_string(), DEFAULT_PORT),
+        Some((h, p)) => (h.to_string(), p.parse().ok()),
+        None => (address.to_string(), None),
+    }
+}
+
+/// Outcome of a Minecraft SRV lookup. The distinction matters: "no record" is
+/// authoritative (the host genuinely has no SRV, so the default port is right),
+/// while "lookup failed" is ambiguous — we must NOT then guess the default port,
+/// because on a shared IP that can ping a *different* server (e.g. a sibling
+/// domain that's actually up) and report this one as falsely online.
+enum SrvOutcome {
+    /// SRV record found: connect to this target host + port.
+    Found(String, u16),
+    /// Authoritatively no SRV record: fall back to the default port on the host.
+    NoRecord,
+    /// The lookup itself failed (timeout/network/resolver) — port unknown.
+    Failed,
+}
+
+/// Resolve a Minecraft SRV record (`_minecraft._tcp.<host>`), the way the
+/// vanilla client does for a bare domain.
+async fn resolve_srv(host: &str) -> SrvOutcome {
+    use hickory_resolver::error::ResolveErrorKind;
+    use hickory_resolver::TokioAsyncResolver;
+
+    let resolver = TokioAsyncResolver::tokio_from_system_conf()
+        .unwrap_or_else(|_| TokioAsyncResolver::tokio(Default::default(), Default::default()));
+    let query = format!("_minecraft._tcp.{host}.");
+
+    match tokio::time::timeout(TIMEOUT, resolver.srv_lookup(query.as_str())).await {
+        // Lookup returned: use the first record, or treat an empty answer as none.
+        Ok(Ok(lookup)) => match lookup.iter().next() {
+            Some(srv) => {
+                let target = srv.target().to_utf8();
+                SrvOutcome::Found(target.trim_end_matches('.').to_string(), srv.port())
+            }
+            None => SrvOutcome::NoRecord,
+        },
+        // A "no records" error is authoritative; anything else is a real failure.
+        Ok(Err(e)) => match e.kind() {
+            ResolveErrorKind::NoRecordsFound { .. } => SrvOutcome::NoRecord,
+            _ => SrvOutcome::Failed,
+        },
+        // Timed out.
+        Err(_) => SrvOutcome::Failed,
     }
 }
 
 async fn ping(address: &str) -> Result<ServerStatus, String> {
-    let (host, port) = split_addr(address);
+    let (host, explicit_port) = split_addr(address);
+    // An explicit port disables SRV (same rule the game uses). Otherwise resolve
+    // SRV: only fall back to the default port when there's *authoritatively* no
+    // record — a failed lookup is an error so we never ping the wrong port.
+    let (conn_host, conn_port) = match explicit_port {
+        Some(p) => (host.clone(), p),
+        None => match resolve_srv(&host).await {
+            SrvOutcome::Found(t, p) => (t, p),
+            SrvOutcome::NoRecord => (host.clone(), DEFAULT_PORT),
+            SrvOutcome::Failed => return Err("SRV lookup failed".to_string()),
+        },
+    };
     let started = Instant::now();
 
-    let mut stream = tokio::time::timeout(TIMEOUT, TcpStream::connect((host.as_str(), port)))
-        .await
-        .map_err(|_| "connection timed out".to_string())?
-        .map_err(|e| format!("connect: {e}"))?;
+    let mut stream =
+        tokio::time::timeout(TIMEOUT, TcpStream::connect((conn_host.as_str(), conn_port)))
+            .await
+            .map_err(|_| "connection timed out".to_string())?
+            .map_err(|e| format!("connect: {e}"))?;
 
     // Handshake: protocol version is arbitrary for a status ping; next state = 1.
+    // Send the original hostname (not the SRV target) so virtual-host routing
+    // (BungeeCord/Velocity forced hosts) resolves the right backend.
     let mut hs = Vec::new();
     write_varint(&mut hs, 0x00);
     write_varint(&mut hs, 760);
     write_string(&mut hs, &host);
-    hs.extend_from_slice(&port.to_be_bytes());
+    hs.extend_from_slice(&conn_port.to_be_bytes());
     write_varint(&mut hs, 1);
     stream.write_all(&framed(&hs)).await.map_err(|e| e.to_string())?;
 

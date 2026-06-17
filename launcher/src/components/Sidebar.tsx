@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { LuMegaphone, LuSettings, LuPlay } from "react-icons/lu";
 import { FaSignal } from "react-icons/fa";
 import { HiStatusOffline } from "react-icons/hi";
@@ -5,6 +6,10 @@ import { Tooltip } from "./Tooltip";
 import { brand } from "../config/brand";
 import logoWhite from "../assets/logo-white.svg";
 import { SERVERS } from "../config/servers";
+import { serverStatus, type ServerStatus } from "../lib/serverStatus";
+
+// How often to re-ping each server for live status.
+const POLL_MS = 30_000;
 
 // Left sidebar. Logo at top; the server list in the middle (selecting one drives
 // the hero image, and later which modpack syncs); What's New / Settings below.
@@ -23,15 +28,38 @@ export function Sidebar({
   onQuickJoin: (address: string) => void;
   activeView: "tabs" | "settings" | "whatsnew";
 }) {
+  // Live status per server id; `undefined` until the first ping resolves.
+  const [statuses, setStatuses] = useState<
+    Record<string, ServerStatus | undefined>
+  >({});
+
+  useEffect(() => {
+    let active = true;
+    const poll = () => {
+      for (const s of SERVERS) {
+        serverStatus(s.statusAddress ?? s.address)
+          .then((st) => active && setStatuses((m) => ({ ...m, [s.id]: st })))
+          .catch(() => {});
+      }
+    };
+    poll();
+    const id = setInterval(poll, POLL_MS);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
+
   return (
     <aside className="sidebar-left">
       <img className="sidebar-logo" src={logoWhite} alt={brand.appName} />
 
       <div className="server-list">
         <p className="sidebar-label">Supported servers</p>
-        {SERVERS.map((s, i) => {
-          // Placeholder online state until live status lands: first is up.
-          const online = i === 0;
+        {SERVERS.map((s) => {
+          const status = statuses[s.id];
+          const loading = status === undefined;
+          const online = !!status?.online;
           return (
             <div
               key={s.id}
@@ -43,10 +71,15 @@ export function Sidebar({
               <div className="server-meta">
                 <span className="server-name">{s.name}</span>
                 <span className="server-sub">
-                  {online ? (
+                  {loading ? (
+                    <>
+                      <FaSignal className="signal-icon checking" />
+                      Checking…
+                    </>
+                  ) : online ? (
                     <>
                       <FaSignal className="signal-icon" />
-                      12 online
+                      {status.players_online} online
                     </>
                   ) : (
                     <>

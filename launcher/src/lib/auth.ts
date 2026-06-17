@@ -27,13 +27,34 @@ export function asAuthError(e: unknown): AuthError {
   return { kind: "other", message: String(e) };
 }
 
+/** One stored account (non-secret). The refresh token stays in the keychain. */
+export interface AccountRecord {
+  uuid: string;
+  username: string;
+}
+
+/** All stored accounts plus the active one's uuid (null if none). */
+export interface AccountList {
+  accounts: AccountRecord[];
+  active: string | null;
+}
+
 export const authStatus = () => invoke<AuthStatus>("auth_status");
 
-/** Interactive browser sign-in (full chain). */
+/** Interactive browser sign-in (full chain). Adds an account, makes it active. */
 export const authLogin = () => invoke<MinecraftProfile>("auth_login");
 
-/** Silent sign-in from the stored refresh token; null if none stored. */
+/** Silent sign-in for the active account; null if no account is active. */
 export const authLoginSilent = () =>
   invoke<MinecraftProfile | null>("auth_login_silent");
 
-export const authLogout = () => invoke<void>("auth_logout");
+/** List all stored accounts + which is active. */
+export const authListAccounts = () => invoke<AccountList>("auth_list_accounts");
+
+/** Make a stored account active and return its profile (refreshes if needed). */
+export const authSwitchAccount = (uuid: string) =>
+  invoke<MinecraftProfile>("auth_switch_account", { uuid });
+
+/** Remove one account by uuid. */
+export const authLogout = (uuid: string) =>
+  invoke<void>("auth_logout", { uuid });

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LuPackagePlus, LuImport } from "react-icons/lu";
+import { LuPackagePlus, LuImport, LuTriangleAlert } from "react-icons/lu";
 import {
   launchVersion,
   onLaunchProgress,
@@ -34,6 +34,9 @@ export function PlayView({
   const [importOpen, setImportOpen] = useState(false);
   // True when the Mods popup was opened as the first step of an install.
   const [installMode, setInstallMode] = useState(false);
+  // True while a quick-join launch is in flight: quick-join forces shaders off
+  // (temporary workaround), so we surface a notice in the progress panel.
+  const [shaderNotice, setShaderNotice] = useState(false);
   const unlisten = useRef<(() => void) | null>(null);
   const { settings } = useSettings();
   const animatedBg = settings?.animated_background ?? true;
@@ -73,6 +76,7 @@ export function PlayView({
     setBusy(true);
     setError(null);
     setProgress(null);
+    setShaderNotice(!!server);
     try {
       await launchVersion(version, server);
     } catch (e) {
@@ -134,6 +138,15 @@ export function PlayView({
       <div className="play-dock">
         {/* Progress panel slides up from behind the bar while busy. */}
         <div className={`play-progress-panel${busy ? " show" : ""}`}>
+          {shaderNotice && (
+            <div className="shader-notice">
+              <LuTriangleAlert />
+              <span>
+                Quick join launches with shaders disabled for now (known bug
+                we're fixing). You can turn shaders back on in game.
+              </span>
+            </div>
+          )}
           <div className="pp-head">
             <span className="pp-msg">{progress?.message ?? "Working…"}</span>
             <span className="pp-pct">{pct !== null ? `${pct}%` : ""}</span>

@@ -12,8 +12,14 @@ export interface ServerDef {
   icon: string;
   /** Hero background image shown when this server is selected. */
   hero: string;
-  /** Server address for quick-join (host or host:port). */
+  /** Server address for quick-join (host or host:port; uses MC's SRV resolver). */
   address: string;
+  /**
+   * Explicit host:port used for the live status ping. Set this when the server
+   * isn't on the default port / SRV resolution is unreliable, so we ping the
+   * exact endpoint instead of guessing. Falls back to `address` if unset.
+   */
+  statusAddress?: string;
 }
 
 export const SERVERS: ServerDef[] = [
@@ -23,6 +29,7 @@ export const SERVERS: ServerDef[] = [
     icon: icon1,
     hero: hero1,
     address: "play.gayporn.tech",
+    statusAddress: "72.61.74.46:25565",
   },
   {
     id: "server2",
@@ -30,5 +37,6 @@ export const SERVERS: ServerDef[] = [
     icon: icon2,
     hero: hero2,
     address: "skyblock.gayporn.tech",
+    statusAddress: "72.61.74.46:25566",
   },
 ];

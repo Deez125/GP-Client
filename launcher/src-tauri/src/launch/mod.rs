@@ -157,6 +157,11 @@ pub async fn launch(
     if let Some(addr) = server.map(str::trim).filter(|a| !a.is_empty()) {
         game_args.push("--quickPlayMultiplayer".to_string());
         game_args.push(addr.to_string());
+        // Temporary: the current Iris (a 26.1.1 build) crashes on pause when a
+        // shader is active on 26.1.2. Quick-join is a one-tap action with no
+        // chance to toggle shaders first, so force them off until we ship a
+        // 26.1.2-compatible Iris/shader combo.
+        disable_iris_shaders(&prepared.game_dir);
     }
 
     // Resolve Java: a matching system JDK, or download Mojang's bundled runtime.
@@ -251,6 +256,34 @@ pub async fn launch(
 
 fn path_str(p: &std::path::Path) -> String {
     p.to_string_lossy().into_owned()
+}
+
+/// Force Iris shaders off for this instance by setting `enableShaders=false`
+/// in `config/iris.properties`, preserving every other line. Creates the file
+/// (and `config/`) if it's not there yet. Best-effort: a failure just means the
+/// game launches with whatever shader state it had.
+fn disable_iris_shaders(game_dir: &std::path::Path) {
+    let path = game_dir.join("config").join("iris.properties");
+    let mut lines: Vec<String> = std::fs::read_to_string(&path)
+        .map(|s| s.lines().map(str::to_string).collect())
+        .unwrap_or_default();
+
+    let mut found = false;
+    for line in lines.iter_mut() {
+        // Only an active (non-comment) `enableShaders=...` line.
+        if line.trim_start().starts_with("enableShaders") {
+            *line = "enableShaders=false".to_string();
+            found = true;
+        }
+    }
+    if !found {
+        lines.push("enableShaders=false".to_string());
+    }
+
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::fs::write(&path, lines.join("\n") + "\n");
 }
 
 /// The launcher's window. Prefers the conventional "main" label but falls back

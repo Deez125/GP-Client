@@ -1,6 +1,6 @@
 [package]
 name = "launcher"
-version = "0.1.5"
+version = "0.1.6"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -32,6 +32,9 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "net", "io-util"] }
 # Tiny blocking HTTP server to catch the OAuth loopback redirect (?code=...).
 tiny_http = "0.12"
+# Resolve Minecraft SRV records (_minecraft._tcp.<domain>) for status pings,
+# the same way the game does when you connect to a bare domain.
+hickory-resolver = "0.24"
 # URL building/parsing for the authorize URL and redirect.
 url = "2"
 # PKCE: base64url + SHA-256 of a random verifier.

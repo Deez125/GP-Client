@@ -6,6 +6,7 @@ mod launch;
 mod mods;
 mod mojang;
 mod profile_import;
+mod server_status;
 mod settings;
 mod skin;
 mod updates;
@@ -43,6 +44,8 @@ pub fn run() {
             get_brand,
             auth::auth_login,
             auth::auth_login_silent,
+            auth::auth_list_accounts,
+            auth::auth_switch_account,
             auth::auth_logout,
             auth::auth_status,
             installations::installations_root,
@@ -75,7 +78,8 @@ pub fn run() {
             settings::get_settings,
             settings::set_settings,
             profile_import::list_source_profiles,
-            profile_import::import_profile_settings
+            profile_import::import_profile_settings,
+            server_status::server_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
