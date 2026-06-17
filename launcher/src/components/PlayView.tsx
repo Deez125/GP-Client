@@ -17,9 +17,12 @@ import { useSettings } from "../hooks/useSettings";
 export function PlayView({
   signedIn,
   heroImage,
+  quickJoin,
 }: {
   signedIn: boolean;
   heroImage: string;
+  /** A quick-join request (server address + nonce) from the sidebar. */
+  quickJoin: { address: string; n: number } | null;
 }) {
   const [versions, setVersions] = useState<string[]>([]);
   const [version, setVersion] = useState("");
@@ -66,12 +69,12 @@ export function PlayView({
     refreshInstalled();
   }, []);
 
-  async function onPlay() {
+  async function onPlay(server?: string) {
     setBusy(true);
     setError(null);
     setProgress(null);
     try {
-      await launchVersion(version);
+      await launchVersion(version, server);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -79,6 +82,15 @@ export function PlayView({
       refreshInstalled();
     }
   }
+
+  // Quick join: launch straight into the requested server. Routed here so the
+  // progress shows in the play dock. Ignored while already busy or before the
+  // version has loaded.
+  useEffect(() => {
+    if (!quickJoin || busy || !version) return;
+    onPlay(quickJoin.address);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickJoin?.n]);
 
   const pct =
     progress && progress.total > 0

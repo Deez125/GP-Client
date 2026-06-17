@@ -46,6 +46,7 @@ pub async fn launch(
     version_id: &str,
     use_fabric: bool,
     sync_mods: bool,
+    server: Option<&str>,
 ) -> Result<(), String> {
     // 1. Sync GP-managed mods first (non-destructive).
     if sync_mods {
@@ -152,6 +153,12 @@ pub async fn launch(
     let mut game_args = rules::resolve_args(&prepared.details.arguments.game, &features, &vars);
     game_args.extend(extra_game.iter().map(|a| rules::expand(a, &vars)));
 
+    // Quick join: boot straight into a server (Minecraft 1.20+ quick-play).
+    if let Some(addr) = server.map(str::trim).filter(|a| !a.is_empty()) {
+        game_args.push("--quickPlayMultiplayer".to_string());
+        game_args.push(addr.to_string());
+    }
+
     // Resolve Java: a matching system JDK, or download Mojang's bundled runtime.
     let required = prepared.details.java_version.major_version;
     let component = prepared.details.java_version.component.clone();
@@ -256,18 +263,21 @@ fn main_window(app: &AppHandle) -> Option<tauri::WebviewWindow> {
 // --- Tauri command ----------------------------------------------------------
 
 /// `fabric` and `sync_mods` default to true when omitted by the caller.
+/// `server`, when given, boots straight into that server (quick join).
 #[tauri::command]
 pub async fn launch_version(
     app: AppHandle,
     version: String,
     fabric: Option<bool>,
     sync_mods: Option<bool>,
+    server: Option<String>,
 ) -> Result<(), String> {
     launch(
         &app,
         &version,
         fabric.unwrap_or(true),
         sync_mods.unwrap_or(true),
+        server.as_deref(),
     )
     .await
 }

@@ -5,6 +5,7 @@ import { TopNav, type Tab } from "./components/TopNav";
 import { PlayView } from "./components/PlayView";
 import { InstallationsView } from "./components/InstallationsView";
 import { SettingsView } from "./components/SettingsView";
+import { WhatsNewView } from "./components/WhatsNewView";
 import { SkinSidebar } from "./components/SkinSidebar";
 import { UpdateIndicator } from "./components/UpdateIndicator";
 import { LoadingOverlay } from "./components/LoadingOverlay";
@@ -15,9 +16,24 @@ import "./App.css";
 function App() {
   const account = useAccount();
   const [tab, setTab] = useState<Tab>("play");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Which full-page view fills the center column.
+  const [centerView, setCenterView] = useState<"tabs" | "settings" | "whatsnew">(
+    "tabs",
+  );
   const [serverId, setServerId] = useState(SERVERS[0].id);
   const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0];
+  // A quick-join request (server address + nonce to re-trigger). Routes to the
+  // Play screen so the launch progress shows in the play dock.
+  const [quickJoin, setQuickJoin] = useState<{
+    address: string;
+    n: number;
+  } | null>(null);
+
+  function handleQuickJoin(address: string) {
+    setCenterView("tabs");
+    setTab("play");
+    setQuickJoin({ address, n: Date.now() });
+  }
 
   // Startup loading gate: keep the overlay up until the account has resolved
   // and (if signed in) the player's skin has actually been fetched, so the UI
@@ -49,18 +65,27 @@ function App() {
       <Sidebar
         serverId={serverId}
         onSelectServer={setServerId}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => setCenterView("settings")}
+        onOpenWhatsNew={() => setCenterView("whatsnew")}
+        onQuickJoin={handleQuickJoin}
+        activeView={centerView}
       />
 
       <div className="center">
-        {settingsOpen ? (
-          <SettingsView onBack={() => setSettingsOpen(false)} />
+        {centerView === "settings" ? (
+          <SettingsView onBack={() => setCenterView("tabs")} />
+        ) : centerView === "whatsnew" ? (
+          <WhatsNewView onBack={() => setCenterView("tabs")} />
         ) : (
           <>
             <TopNav tab={tab} onChange={setTab} />
             <div className="view">
               {tab === "play" ? (
-                <PlayView signedIn={!!account.profile} heroImage={server.hero} />
+                <PlayView
+                  signedIn={!!account.profile}
+                  heroImage={server.hero}
+                  quickJoin={quickJoin}
+                />
               ) : (
                 <InstallationsView />
               )}

@@ -10,9 +10,10 @@ export interface LaunchProgress {
 }
 
 /** Prepare files and launch the given Minecraft version. Resolves when the
- *  game process has been spawned (downloads happen during the call). */
-export const launchVersion = (version: string) =>
-  invoke<void>("launch_version", { version });
+ *  game process has been spawned (downloads happen during the call). Pass
+ *  `server` (host or host:port) to quick-join straight into a server. */
+export const launchVersion = (version: string, server?: string) =>
+  invoke<void>("launch_version", { version, server });
 
 /** Subscribe to download/launch progress. Returns an unlisten function. */
 export const onLaunchProgress = (

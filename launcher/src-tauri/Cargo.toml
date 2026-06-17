@@ -29,7 +29,7 @@ serde_json = "1"
 # HTTP client for the OAuth / Xbox / Minecraft token exchanges.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "cookies", "multipart"] }
 # Async runtime bits used by the auth commands.
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "net", "io-util"] }
 # Tiny blocking HTTP server to catch the OAuth loopback redirect (?code=...).
 tiny_http = "0.12"
 # URL building/parsing for the authorize URL and redirect.

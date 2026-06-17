@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { LuChevronDown, LuDoorOpen, LuPlus } from "react-icons/lu";
+import { Tooltip } from "./Tooltip";
 import type { Account } from "../hooks/useAccount";
 import type { AuthError } from "../lib/auth";
 import { getSkinFace } from "../lib/skin";
@@ -20,6 +22,7 @@ function authMessage(error: AuthError): string {
 export function AccountBox({ account }: { account: Account }) {
   const { profile, busy, initializing, error, signIn, signOut } = account;
   const [face, setFace] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setFace(null);
@@ -35,17 +38,71 @@ export function AccountBox({ account }: { account: Account }) {
 
   if (profile) {
     return (
-      <div className="account">
-        {face ? (
-          <img className="account-avatar" src={face} alt="" />
-        ) : (
-          <div className="account-avatar placeholder" />
-        )}
-        <div className="account-meta">
-          <strong title={profile.username}>{profile.username}</strong>
-          <button className="link-btn" onClick={signOut}>
-            Sign out
-          </button>
+      <div className="account-block">
+        <p className="account-label">Playing as</p>
+        <div className="account-anchor">
+          <div className={`account-box${menuOpen ? " open" : ""}`}>
+            <div
+              className="account"
+              role="button"
+              onClick={() => setMenuOpen((o) => !o)}
+            >
+              {face ? (
+                <img className="account-avatar" src={face} alt="" />
+              ) : (
+                <div className="account-avatar placeholder" />
+              )}
+              <div className="account-meta">
+                <strong title={profile.username}>{profile.username}</strong>
+                <span className="account-sub">Minecraft account</span>
+              </div>
+              <LuChevronDown
+                className={`dropdown-arrow${menuOpen ? " open" : ""}`}
+              />
+            </div>
+
+            {/* Always rendered so the box can animate its height. */}
+            <div className="account-menu">
+              <div className="account-menu-clip">
+                <div className="account-menu-content">
+                  <div
+                    className="account-row"
+                    role="button"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="account-dot" />
+                    {face ? (
+                      <img className="account-row-avatar" src={face} alt="" />
+                    ) : (
+                      <div className="account-row-avatar placeholder" />
+                    )}
+                    <span className="account-row-name" title={profile.username}>
+                      {profile.username}
+                    </span>
+                    <Tooltip text="Sign out">
+                      <button
+                        className="account-signout"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          signOut();
+                        }}
+                      >
+                        <LuDoorOpen />
+                      </button>
+                    </Tooltip>
+                  </div>
+                  <button
+                    className="account-add"
+                    onClick={signIn}
+                    disabled={busy}
+                  >
+                    <LuPlus />
+                    Add account
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

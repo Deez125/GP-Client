@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: center;
   gap: 22px;
-  background: var(--bg-0, #0a0c10);
+  background: var(--bg-chrome, #141517);
   animation: loading-fade-in 0.15s ease;
 }
 
@@ -22,6 +22,46 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text, #e9edf4);
+}
+
+/* Themed tooltip (portal'd, sits above the target) */
+.tip-wrap {
+  display: inline-flex;
+}
+.tip {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  background: var(--bg-4);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2000;
+  animation: tip-in 0.1s ease;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Spinner + cycling text used while a page/popup loads its data. Fills the
+   available space (flex parents) and centers; min-height keeps it centered in
+   non-flex scroll containers too. */
+.loading-spinner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 240px;
+  padding: 24px;
 }
 
 /* lds-ring spinner (loading-ui.com style) */
@@ -41,7 +81,7 @@
   border: 6px solid currentColor;
   border-radius: 50%;
   animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  border-color: var(--accent-bright, #4c9bff) transparent transparent transparent;
+  border-color: var(--text, #fff) transparent transparent transparent;
 }
 .lds-ring div:nth-child(1) {
   animation-delay: -0.45s;
@@ -67,26 +107,33 @@
 }
 
 :root {
-  /* Surfaces (low → high elevation) */
-  --bg-0: #0a0c10;
-  --bg-1: #0f1217;
-  --bg-2: #151921;
-  --bg-3: #1b202a;
-  --bg-4: #232a36;
-  --hover: #222936;
+  /* Surfaces (low → high elevation) — neutral grays, no blue, no gradients */
+  --bg-0: #17191c;
+  --bg-1: #1d2024;
+  --bg-2: #212429;
+  --bg-3: #262930;
+  --bg-4: #2c2f36;
+  --hover: #2a2d33;
+  /* Darker chrome behind the tab bar, play bar, and settings page */
+  --bg-chrome: #141517;
 
-  --border: #242b37;
-  --border-strong: #323b4a;
+  --border: #303339;
+  /* "even lighter" gray — borders, icons, dim accents */
+  --border-strong: #3c3f47;
 
-  --text: #e9edf4;
-  --text-dim: #98a2b3;
-  --text-faint: #687184;
+  --text: #e9eaec;
+  --text-dim: #9aa0a8;
+  --text-faint: #6a6f78;
 
-  /* Electric blue accent */
-  --accent: #3b82f6;
-  --accent-bright: #60a5fa;
-  --accent-soft: rgba(59, 130, 246, 0.16);
-  --accent-glow: rgba(59, 130, 246, 0.45);
+  /* Neutral gray "accent" (replaces the former electric blue): a lighter and
+     a darker gray, plus a soft white for selected backgrounds. Selected
+     states themselves stay white. */
+  --accent: #2c2f36; /* darker gray */
+  --accent-bright: #373a42; /* lighter gray (button fills) */
+  --accent-soft: rgba(255, 255, 255, 0.08);
+  --accent-glow: transparent;
+  /* Blue for links + the Play button, so they stand out on the gray theme */
+  --link: #3b82f6;
 
   /* Green "go" for the Play button */
   --play: #45c267;
@@ -139,7 +186,7 @@ button {
 /* ---- App shell ---- */
 .app {
   display: grid;
-  grid-template-columns: 244px 1fr 252px;
+  grid-template-columns: 284px 1fr 300px;
   height: 100vh;
   overflow: hidden;
   color: var(--text);
@@ -153,7 +200,7 @@ button {
   display: flex;
   flex-direction: column;
   padding: 16px 12px;
-  background: linear-gradient(180deg, rgba(21, 25, 33, 0.92), rgba(13, 16, 21, 0.92));
+  background: var(--bg-1);
   border-right: 1px solid var(--border);
   backdrop-filter: blur(8px);
 }
@@ -182,16 +229,16 @@ button {
 }
 
 .account-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
   image-rendering: pixelated;
   flex-shrink: 0;
 }
 
 .account-avatar.placeholder {
-  border-radius: 0;
-  background: linear-gradient(135deg, #2a3140, #1a1f29);
+  border-radius: 6px;
+  background: var(--bg-4);
   border: 1px solid var(--border-strong);
 }
 
@@ -199,6 +246,7 @@ button {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
 .account-meta strong {
@@ -208,10 +256,168 @@ button {
   text-overflow: ellipsis;
 }
 
+.account-sub {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/* Expandable account assembly. One rounded container with constant corners
+   that simply grows taller — so corners never snap and there's no seam/line.
+   It floats over the page (absolute) while a fixed-height anchor reserves the
+   collapsed space below it. */
+.account-block {
+  position: relative;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.account-label {
+  margin: 0 0 6px 2px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* Reserves the collapsed box height in flow; the box itself is absolute. */
+.account-anchor {
+  position: relative;
+  height: 56px;
+}
+
+.account-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.account-box.open {
+  box-shadow: var(--shadow-lg);
+}
+
+/* The trigger inside the box is just a row — the box provides bg/border. */
+.account-box .account {
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+}
+
+/* Inner section grows from 0 → content height; the box (constant rounding)
+   grows with it. */
+.account-menu {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.account-box.open .account-menu {
+  grid-template-rows: 1fr;
+}
+.account-menu-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+.account-menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 8px 8px;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.account-row:hover {
+  background: var(--bg-4);
+}
+
+.account-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--link);
+  flex-shrink: 0;
+}
+
+.account-row-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.account-row-avatar.placeholder {
+  background: var(--bg-2);
+}
+
+.account-row-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-signout {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.12s, color 0.12s;
+}
+.account-signout:hover {
+  background: #db3b3b;
+  color: #fff;
+}
+
+.account-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.account-add:hover:not(:disabled) {
+  background: var(--bg-4);
+}
+.account-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .link-btn {
   background: none;
   border: none;
-  color: var(--accent-bright);
+  color: var(--link);
   padding: 0;
   font-size: 0.8rem;
   text-align: left;
@@ -251,8 +457,8 @@ button {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 9px 10px;
+  gap: 12px;
+  padding: 11px 12px;
   border: none;
   border-radius: var(--radius);
   background: none;
@@ -273,11 +479,66 @@ button {
   color: #fff;
 }
 
+.server-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.server-name {
+  font-weight: 700;
+  font-size: 0.98rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.server-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.signal-icon {
+  color: #3fb950;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+.offline-icon {
+  color: inherit;
+  flex-shrink: 0;
+  font-size: 0.92rem;
+}
+
+.server-join {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-4);
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.server-join:hover:not(:disabled) {
+  filter: brightness(1.3);
+}
+.server-join:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
 
 .server-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   flex-shrink: 0;
   object-fit: cover;
   display: grid;
@@ -309,21 +570,31 @@ button {
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   background: none;
   border: none;
   color: var(--text-dim);
   text-align: left;
-  padding: 9px 10px;
+  padding: 10px 10px;
   border-radius: var(--radius);
-  font-size: 0.9rem;
+  font-size: 1.02rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+}
+.sidebar-link svg {
+  width: 1.2em;
+  height: 1.2em;
 }
 
 .sidebar-link:hover {
   background: var(--hover);
   color: var(--text);
+}
+
+.sidebar-link.active {
+  background: var(--bg-3);
+  color: #fff;
 }
 
 /* ============================================================
@@ -338,11 +609,12 @@ button {
 
 .topnav {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 26px;
-  padding: 16px 24px 0;
+  height: 60px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--border);
-  background: rgba(15, 18, 23, 0.4);
+  background: var(--bg-chrome);
 }
 
 .topnav-title {
@@ -385,7 +657,7 @@ button {
   bottom: -1px;
   height: 2px;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--link);
 }
 
 /* Update-available popup (bottom-right, foreground) */
@@ -433,12 +705,14 @@ button {
   flex: 1;
   overflow: auto;
   min-height: 0;
+  background: var(--bg-chrome);
 }
 
 /* ============================================================
    Settings page (full center view)
    ============================================================ */
 .settings-view {
+  background: var(--bg-chrome);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -449,9 +723,10 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 28px;
+  height: 60px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--border);
-  background: rgba(15, 18, 23, 0.4);
+  background: var(--bg-chrome);
 }
 
 .settings-head h2 {
@@ -465,16 +740,16 @@ button {
   width: 36px;
   height: 36px;
   border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--bg-3);
-  color: var(--text);
+  border: none;
+  background: none;
+  color: var(--text-dim);
   cursor: pointer;
   font-size: 1.1rem;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 .settings-back:hover {
-  background: var(--bg-4);
-  border-color: var(--accent);
+  background: var(--bg-3);
+  color: var(--text);
 }
 
 .settings-scroll {
@@ -545,11 +820,40 @@ button {
 }
 
 .setting-slider {
-  width: 180px;
+  width: 190px;
 }
-.setting-slider input[type="range"] {
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  accent-color: var(--accent);
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-4);
+  border: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-4);
 }
 
 /* Toggle switch */
@@ -565,7 +869,7 @@ button {
   transition: background 0.18s;
 }
 .switch.on {
-  background: var(--accent);
+  background: var(--link);
 }
 .switch-knob {
   position: absolute;
@@ -660,7 +964,7 @@ button {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 35%, rgba(0, 0, 0, 0.5) 100%);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .hero-logo {
@@ -668,10 +972,7 @@ button {
   font-size: 3.4rem;
   font-weight: 800;
   letter-spacing: 1px;
-  background: linear-gradient(180deg, #ffffff, #cfe0ff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #fff;
 }
 
 .hero-tagline {
@@ -693,9 +994,8 @@ button {
   align-items: center;
   gap: 18px;
   padding: 16px 24px;
-  background: linear-gradient(180deg, rgba(21, 25, 33, 0.96), rgba(15, 18, 23, 0.98));
+  background: var(--bg-chrome);
   border-top: 1px solid var(--border);
-  backdrop-filter: blur(8px);
 }
 
 .play-progress-panel {
@@ -704,7 +1004,7 @@ button {
   right: 0;
   bottom: 100%;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(24, 29, 38, 0.98), rgba(17, 20, 26, 0.98));
+  background: var(--bg-chrome);
   border-top: 1px solid var(--border);
   padding: 14px 24px 16px;
   transform: translateY(100%);
@@ -774,28 +1074,28 @@ button {
   font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: 1.5px;
-  color: #08200f;
-  background: linear-gradient(180deg, var(--play-bright), var(--play));
+  color: #fff;
+  background: var(--link);
   border: none;
   border-radius: var(--radius);
-  box-shadow: 0 4px 0 var(--play-shadow);
+  box-shadow: 0 4px 0 #2257b0;
   cursor: pointer;
   transition: filter 0.12s, transform 0.05s, box-shadow 0.12s;
 }
 
 .play-btn:hover:not(:disabled) {
-  filter: brightness(1.07);
+  filter: brightness(1.08);
 }
 
 .play-btn:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--play-shadow);
+  box-shadow: 0 1px 0 #2257b0;
 }
 
 .play-btn:disabled {
-  background: var(--bg-4);
+  background: var(--bg-3);
   color: var(--text-faint);
-  box-shadow: 0 4px 0 #1a1f29;
+  box-shadow: 0 4px 0 #141619;
   cursor: not-allowed;
   letter-spacing: 1px;
 }
@@ -820,7 +1120,7 @@ button {
 .progress-fill {
   height: 100%;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+  background: var(--accent-bright);
   transition: width 0.25s ease;
 }
 
@@ -836,11 +1136,47 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 18px;
 }
 
 .installs-header h2 {
   margin: 0;
   font-size: 1.4rem;
+}
+
+.installs-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  max-width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+}
+.search-icon {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+.search-input::placeholder {
+  color: var(--text-faint);
 }
 
 .install-controls {
@@ -892,21 +1228,20 @@ button {
   justify-content: space-between;
   gap: 8px;
   border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background-color: var(--bg-2);
+  border: none;
+  background-color: var(--accent-bright);
   color: var(--text);
   padding: 0.6em 0.85em;
   font-size: 0.95rem;
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: filter 0.15s;
 }
 
 .dropdown-trigger:hover:not(:disabled),
 .dropdown-trigger:focus {
-  border-color: var(--accent);
+  filter: brightness(1.15);
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .dropdown-trigger:disabled {
@@ -1022,7 +1357,10 @@ button {
 }
 
 .play-small {
-  padding: 0.5em 1.3em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5em 1.2em;
 }
 
 .icon-btn {
@@ -1031,23 +1369,22 @@ button {
   width: 36px;
   height: 36px;
   border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--bg-3);
+  border: none;
+  background: var(--accent-bright);
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: filter 0.15s, color 0.15s, background 0.15s;
 }
 
 .icon-btn:hover {
-  border-color: var(--accent);
   color: #fff;
-  background: var(--accent-soft);
+  filter: brightness(1.15);
 }
 
 .icon-btn.danger:hover {
-  border-color: var(--danger);
-  color: #ff9aa8;
-  background: rgba(224, 85, 106, 0.14);
+  color: #fff;
+  background: #db3b3b;
+  filter: none;
 }
 
 /* ============================================================
@@ -1163,9 +1500,16 @@ button {
 .mods-modal {
   width: 960px;
   max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 64px);
+  /* Fixed height so it doesn't resize between loading and loaded. */
+  height: min(760px, calc(100vh - 64px));
+  padding-bottom: 16px;
   display: flex;
   flex-direction: column;
+}
+
+/* Trim the action bar so it covers less of the mod list (buttons unchanged). */
+.mods-modal .modal-actions {
+  margin-top: 12px;
 }
 
 .mods-modal-head h3 {
@@ -1308,7 +1652,7 @@ button {
   color: var(--text-dim);
 }
 .whatsnew-link a {
-  color: var(--accent-bright);
+  color: var(--link);
   cursor: pointer;
 }
 .whatsnew-link a:hover {
@@ -1382,7 +1726,7 @@ button {
 }
 
 .markdown a {
-  color: var(--accent-bright);
+  color: var(--link);
   text-decoration: none;
 }
 .markdown a:hover {
@@ -1523,7 +1867,7 @@ button {
 }
 
 .mod-card.on {
-  border-color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.45);
   background: var(--accent-soft);
 }
 
@@ -1543,7 +1887,7 @@ button {
 }
 
 .mod-img.placeholder {
-  background: linear-gradient(135deg, #2a3140, #1a1f29);
+  background: var(--bg-4);
 }
 
 .mod-card-body {
@@ -1586,14 +1930,15 @@ button {
 .mod-check.on,
 .mod-check.section.all,
 .mod-check.locked {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #fff;
+  border-color: #fff;
+  color: #0b0b0d;
 }
 
 .mod-check.section.some {
   background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent-bright);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
 }
 
 .mod-check.locked {
@@ -1611,7 +1956,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(180deg, rgba(21, 25, 33, 0.92), rgba(13, 16, 21, 0.92));
+  background: var(--bg-1);
   border-left: 1px solid var(--border);
   padding: 16px 14px;
   backdrop-filter: blur(8px);
@@ -1781,8 +2126,8 @@ button {
   background: var(--bg-3);
 }
 .tile-action.select {
-  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
-  color: #061322;
+  background: var(--accent-bright);
+  color: var(--text);
 }
 .tile-action.select:hover {
   filter: brightness(1.08);
@@ -1972,8 +2317,104 @@ button {
   width: 90px;
   height: 210px;
   border-radius: 10px;
-  background: linear-gradient(180deg, #2a3140, #161b24);
+  background: var(--bg-4);
   border: 1px dashed var(--border-strong);
+}
+
+/* ---- Friends panel (right sidebar) ---- */
+.friends {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+}
+.friends-label {
+  margin: 0 0 8px 2px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.friends-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.friend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  transition: background 0.12s;
+}
+.friend:hover {
+  background: var(--bg-3);
+}
+.friend-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.friend-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  image-rendering: pixelated;
+  display: block;
+}
+.friend-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  border: 2px solid var(--bg-1);
+}
+.friend-dot.online {
+  background: #3fb950;
+}
+.friend-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.friend-meta strong {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.friend-sub {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.friend-join {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 7px;
+  background: var(--link);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.friend-join:hover {
+  filter: brightness(1.08);
 }
 
 /* ============================================================
@@ -1981,19 +2422,18 @@ button {
    ============================================================ */
 .btn {
   border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
+  border: none;
   padding: 0.58em 1.15em;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-  background: var(--bg-3);
+  background: var(--accent-bright);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.06s;
+  transition: background 0.15s, filter 0.15s, transform 0.06s;
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--bg-4);
+  filter: brightness(1.15);
 }
 
 .btn:active:not(:disabled) {
@@ -2001,13 +2441,12 @@ button {
 }
 
 .btn.primary {
-  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
-  border-color: transparent;
-  color: #061322;
+  background: var(--link);
+  color: #fff;
 }
 
 .btn.primary:hover:not(:disabled) {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
 }
 
 .btn:disabled {

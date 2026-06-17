@@ -5,6 +5,7 @@ import {
   type OptionalCategoryView,
   type VersionMods,
 } from "../lib/mods";
+import { LoadingSpinner } from "./LoadingSpinner";
 
 // The Mods picker. Required mods collapse to a single locked summary; optional
 // mods are grouped into collapsible categories, each with a select-all box.
@@ -112,7 +113,7 @@ export function ModsDialog({
           <h3>{version} Mods</h3>
         </div>
 
-        {!data && !error && <p className="muted">Loading mods…</p>}
+        {!data && !error && <LoadingSpinner />}
         {error && <p className="warn">{error}</p>}
 
         {data && (

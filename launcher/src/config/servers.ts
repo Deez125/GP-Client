@@ -12,9 +12,23 @@ export interface ServerDef {
   icon: string;
   /** Hero background image shown when this server is selected. */
   hero: string;
+  /** Server address for quick-join (host or host:port). */
+  address: string;
 }
 
 export const SERVERS: ServerDef[] = [
-  { id: "server1", name: "Epstein's Island", icon: icon1, hero: hero1 },
-  { id: "server2", name: "Epstein's Skyblock", icon: icon2, hero: hero2 },
+  {
+    id: "server1",
+    name: "Epstein's Island",
+    icon: icon1,
+    hero: hero1,
+    address: "play.gayporn.tech",
+  },
+  {
+    id: "server2",
+    name: "Epstein's Skyblock",
+    icon: icon2,
+    hero: hero2,
+    address: "skyblock.gayporn.tech",
+  },
 ];

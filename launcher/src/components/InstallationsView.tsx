@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import { LuPlay, LuSearch } from "react-icons/lu";
 import {
   createInstallation,
   deleteInstallation,
-  installationsRoot,
   listInstallations,
   openInstallationFolder,
   openInstallationsFolder,
@@ -12,7 +12,7 @@ import {
 import { launchVersion } from "../lib/launch";
 import { listModVersions } from "../lib/versions";
 import { EditInstallationDialog } from "./EditInstallationDialog";
-import { Dropdown } from "./Dropdown";
+import { Tooltip } from "./Tooltip";
 
 // Folder / pencil / trash icons (small inline SVGs for crisp rendering).
 const FolderIcon = () => (
@@ -32,9 +32,9 @@ const TrashIcon = () => (
 );
 
 export function InstallationsView() {
-  const [root, setRoot] = useState("");
   const [installs, setInstalls] = useState<InstallationInfo[]>([]);
-  const [versions, setVersions] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  // Latest available version; used when creating a new installation.
   const [version, setVersion] = useState("");
   const [busy, setBusy] = useState(false);
   const [launching, setLaunching] = useState<string | null>(null);
@@ -43,7 +43,6 @@ export function InstallationsView() {
 
   async function refresh() {
     try {
-      setRoot(await installationsRoot());
       setInstalls(await listInstallations());
     } catch (e) {
       setError(String(e));
@@ -54,7 +53,6 @@ export function InstallationsView() {
     refresh();
     listModVersions()
       .then((vs) => {
-        setVersions(vs);
         if (vs.length > 0) setVersion(vs[0]);
       })
       .catch(() => {});
@@ -109,32 +107,48 @@ export function InstallationsView() {
     }
   }
 
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? installs.filter(
+        (i) =>
+          i.name.toLowerCase().includes(q) ||
+          i.version.toLowerCase().includes(q),
+      )
+    : installs;
+
   return (
     <div className="installs-view">
       <div className="installs-header">
-        <h2>Installations</h2>
-        <button className="btn" onClick={() => openInstallationsFolder()}>
-          Open folder
-        </button>
+        <div className="search-box">
+          <LuSearch className="search-icon" />
+          <input
+            className="search-input"
+            placeholder="Search installations…"
+            value={query}
+            onChange={(e) => setQuery(e.currentTarget.value)}
+          />
+        </div>
+        <div className="installs-header-actions">
+          <button className="btn" onClick={() => openInstallationsFolder()}>
+            Open folder
+          </button>
+          <button
+            className="btn primary"
+            onClick={onCreate}
+            disabled={busy || !version}
+          >
+            {busy ? "Creating…" : "New installation"}
+          </button>
+        </div>
       </div>
-      <p className="path">{root}</p>
 
-      <div className="install-controls">
-        <Dropdown
-          value={version}
-          onChange={setVersion}
-          disabled={busy || versions.length === 0}
-          placeholder="Loading…"
-          options={versions.map((v) => ({ value: v, label: v }))}
-        />
-        <button className="btn primary" onClick={onCreate} disabled={busy || !version}>
-          {busy ? "Creating…" : "New installation"}
-        </button>
-      </div>
-
-      {installs.length > 0 ? (
+      {installs.length === 0 ? (
+        <p className="muted">No installations yet.</p>
+      ) : filtered.length === 0 ? (
+        <p className="muted">No installations match your search.</p>
+      ) : (
         <ul className="install-rows">
-          {installs.map((i) => (
+          {filtered.map((i) => (
             <li key={i.version} className="install-row">
               <div className="install-row-info">
                 <strong>{i.name}</strong>
@@ -148,35 +162,37 @@ export function InstallationsView() {
                   onClick={() => onPlay(i)}
                   disabled={launching === i.version}
                 >
-                  {launching === i.version ? "…" : "Play"}
+                  {launching === i.version ? (
+                    "…"
+                  ) : (
+                    <>
+                      <LuPlay />
+                      Play
+                    </>
+                  )}
                 </button>
-                <button
-                  className="icon-btn"
-                  title="Open folder"
-                  onClick={() => openInstallationFolder(i.version)}
-                >
-                  <FolderIcon />
-                </button>
-                <button
-                  className="icon-btn"
-                  title="Edit"
-                  onClick={() => setEditing(i)}
-                >
-                  <PencilIcon />
-                </button>
-                <button
-                  className="icon-btn danger"
-                  title="Delete"
-                  onClick={() => onDelete(i)}
-                >
-                  <TrashIcon />
-                </button>
+                <Tooltip text="Open folder">
+                  <button
+                    className="icon-btn"
+                    onClick={() => openInstallationFolder(i.version)}
+                  >
+                    <FolderIcon />
+                  </button>
+                </Tooltip>
+                <Tooltip text="Edit">
+                  <button className="icon-btn" onClick={() => setEditing(i)}>
+                    <PencilIcon />
+                  </button>
+                </Tooltip>
+                <Tooltip text="Delete">
+                  <button className="icon-btn danger" onClick={() => onDelete(i)}>
+                    <TrashIcon />
+                  </button>
+                </Tooltip>
               </div>
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="muted">No installations yet.</p>
       )}
 
       {error && <p className="warn">{error}</p>}

@@ -3,6 +3,7 @@ import type { Account } from "../hooks/useAccount";
 import { AccountBox } from "./AccountBox";
 import { SkinRender } from "./SkinRender";
 import { ChangeSkinDialog } from "./ChangeSkinDialog";
+import { FriendsPanel } from "./FriendsPanel";
 
 // Right sidebar: account at top, then a static (paused, angled) 3D render of the
 // player's skin. "Change skin" opens the skin library popup.
@@ -24,6 +25,8 @@ export function SkinSidebar({ account }: { account: Account }) {
       <button className="btn" onClick={() => setOpen(true)} disabled={!profile}>
         Change skin
       </button>
+
+      <FriendsPanel />
 
       {open && profile && (
         <ChangeSkinDialog

@@ -4,20 +4,32 @@
 
 use serde::Deserialize;
 
+/// A `.jar` in a GitHub repo folder. `sha` is the git blob SHA-1 (what the
+/// contents API reports) — used to detect content changes even when the
+/// filename stays the same.
+#[derive(Clone)]
+pub struct RemoteJar {
+    pub name: String,
+    pub url: String,
+    pub sha: String,
+}
+
 #[derive(Deserialize)]
 struct Entry {
     name: String,
     #[serde(rename = "type")]
     kind: String,
     #[serde(default)]
+    sha: String,
+    #[serde(default)]
     download_url: Option<String>,
 }
 
-/// Return `(filename, download_url)` for every `.jar` file in the folder.
+/// Return a `RemoteJar` for every `.jar` file in the folder.
 pub async fn list_jars(
     client: &reqwest::Client,
     api_url: &str,
-) -> Result<Vec<(String, String)>, String> {
+) -> Result<Vec<RemoteJar>, String> {
     let resp = client
         .get(api_url)
         .send()
@@ -46,7 +58,11 @@ pub async fn list_jars(
     for e in entries {
         if e.kind == "file" && e.name.to_lowercase().ends_with(".jar") {
             if let Some(url) = e.download_url {
-                out.push((e.name, url));
+                out.push(RemoteJar {
+                    name: e.name,
+                    url,
+                    sha: e.sha,
+                });
             }
         }
     }

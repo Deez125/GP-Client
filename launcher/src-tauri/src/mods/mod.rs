@@ -7,7 +7,8 @@
 //! Sync is INCREMENTAL and NON-DESTRUCTIVE:
 //!   * only jars GP installed before (recorded in `.modsync.json`) are ever
 //!     removed — user-added mods are invisible to it and never touched;
-//!   * a jar already present (same filename) isn't re-downloaded;
+//!   * a jar already present is re-downloaded only if the hosted file's git SHA
+//!     changed (so same-filename updates are still picked up);
 //!   * a removed/unticked/updated mod's old jar is cleaned up.
 
 mod github;
@@ -24,6 +25,8 @@ use futures::StreamExt;
 use serde::Serialize;
 use tauri::AppHandle;
 
+use sha1::{Digest, Sha1};
+
 use crate::mojang::{download, emit_progress};
 
 fn http() -> Result<reqwest::Client, String> {
@@ -35,6 +38,17 @@ fn http() -> Result<reqwest::Client, String> {
 
 fn version_dir(version: &str) -> std::path::PathBuf {
     crate::installations::install_root().join(version)
+}
+
+/// Git blob SHA-1 of a file — the same value the GitHub contents API reports
+/// for a file — so we can tell whether an on-disk jar still matches the hosted
+/// one (even when the filename is unchanged).
+fn git_blob_sha1(path: &Path) -> Option<String> {
+    let data = std::fs::read(path).ok()?;
+    let mut h = Sha1::new();
+    h.update(format!("blob {}\0", data.len()).as_bytes());
+    h.update(&data);
+    Some(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
 }
 
 #[derive(Debug, Default, serde::Serialize)]
@@ -68,17 +82,24 @@ pub async fn sync(app: &AppHandle, version: &str) -> Result<SyncResult, String> 
     let selected = selection::read(&dir);
     let optional = resolve_optional(&client, &manifest, version, ventry, &selected).await?;
 
-    // The full target set (filename -> url).
-    let mut targets: Vec<(String, String)> = required;
+    // The full target set.
+    let mut targets: Vec<github::RemoteJar> = required;
     targets.extend(optional);
-    let target_names: HashSet<String> = targets.iter().map(|(n, _)| n.clone()).collect();
+    let target_names: HashSet<String> = targets.iter().map(|j| j.name.clone()).collect();
 
-    // Download only what's missing (already-present jars are left as-is).
-    let needed: Vec<(String, String)> = targets
-        .iter()
-        .filter(|(n, _)| !mods_dir.join(n).exists())
-        .cloned()
-        .collect();
+    // (Re)download anything missing, or whose on-disk content no longer matches
+    // the hosted file's git SHA — this catches updates that reuse the same
+    // filename. A stale jar is deleted first so it actually re-downloads.
+    let mut needed: Vec<(String, String)> = Vec::new();
+    for j in &targets {
+        let dest = mods_dir.join(&j.name);
+        if !dest.exists() {
+            needed.push((j.name.clone(), j.url.clone()));
+        } else if !j.sha.is_empty() && git_blob_sha1(&dest).as_deref() != Some(j.sha.as_str()) {
+            let _ = std::fs::remove_file(&dest);
+            needed.push((j.name.clone(), j.url.clone()));
+        }
+    }
     if !needed.is_empty() {
         download_all(app, &client, &needed, &mods_dir).await?;
     }
@@ -114,14 +135,14 @@ pub async fn sync(app: &AppHandle, version: &str) -> Result<SyncResult, String> 
     Ok(SyncResult { installed, removed })
 }
 
-/// Resolve the ticked optional mods to `(filename, download_url)` pairs.
+/// Resolve the ticked optional mods to `RemoteJar`s.
 async fn resolve_optional(
     client: &reqwest::Client,
     manifest: &manifest::Manifest,
     version: &str,
     ventry: &manifest::VersionEntry,
     selected: &[String],
-) -> Result<Vec<(String, String)>, String> {
+) -> Result<Vec<github::RemoteJar>, String> {
     if selected.is_empty() {
         return Ok(Vec::new());
     }
@@ -143,13 +164,19 @@ async fn resolve_optional(
                     .filter(|s| !s.is_empty())
                     .unwrap_or("mod.jar")
                     .to_string();
-                out.push((filename, url.clone()));
+                // Externally hosted: no git sha, so it's existence-only checked.
+                out.push(github::RemoteJar {
+                    name: filename,
+                    url: url.clone(),
+                    sha: String::new(),
+                });
             } else if let Some(prefix) = &m.jar {
                 let pl = prefix.to_lowercase();
-                if let Some((fname, furl)) =
-                    listing.iter().find(|(n, _)| n.to_lowercase().starts_with(&pl))
+                if let Some(j) = listing
+                    .iter()
+                    .find(|j| j.name.to_lowercase().starts_with(&pl))
                 {
-                    out.push((fname.clone(), furl.clone()));
+                    out.push(j.clone());
                 }
             }
         }
@@ -273,7 +300,7 @@ pub async fn get_version_mods(version: String) -> Result<VersionMods, String> {
                 true
             } else if let Some(prefix) = &m.jar {
                 let pl = prefix.to_lowercase();
-                listing.iter().any(|(n, _)| n.to_lowercase().starts_with(&pl))
+                listing.iter().any(|j| j.name.to_lowercase().starts_with(&pl))
             } else {
                 false
             };

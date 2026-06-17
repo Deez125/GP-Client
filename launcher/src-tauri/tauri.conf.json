@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "GP Client",
-        "width": 1280,
+        "width": 1380,
         "height": 760,
-        "minWidth": 1080,
+        "minWidth": 1180,
         "minHeight": 640
       }
     ],
